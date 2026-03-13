@@ -1,0 +1,82 @@
+# old that works
+#!/bin/bash
+
+script_url="https://ominous-funicular-5grgr4xp56pjf95x-3000.app.github.dev/kxinternet.txt"
+current_script="$0"
+
+if [[ -f "$current_script" ]]; then
+    local_md5=$(md5sum "$current_script" | awk '{print $1}')
+    remote_md5=$(wget -qO- "$script_url" | md5sum | awk '{print $1}')
+    if [ "$local_md5" != "$remote_md5" ]; then
+        wget -q "$script_url" -O "$current_script"
+        chmod +x "$current_script"
+        exec "$current_script" "$@"
+    fi
+fi
+
+allowlist_url="https://ominous-funicular-5grgr4xp56pjf95x-3000.app.github.dev/kx"
+icon_url="https://testprojectsedu.nekoweb.org/kxinter.png"
+login_script="/usr/local/bin/kx-login"
+app_name="Files"
+
+sudo apt-get update -y && sudo apt-get install -y chromium jq zenity wget
+
+mkdir -p "$HOME/.local/share/icons"
+if ! touch "$HOME/.local/share/icons/testfile" 2>/dev/null; then
+    sudo rm -rf "$HOME/.local/share/icons"
+    mkdir -p "$HOME/.local/share/icons"
+    sudo chown -R "$USER":"$USER" "$HOME/.local/share/icons"
+    chmod 755 "$HOME/.local/share/icons"
+fi
+wget -q "$icon_url" -O "$HOME/.local/share/icons/kx-brand.png"
+chmod 644 "$HOME/.local/share/icons/kx-brand.png"
+
+cat << 'EOF' | sudo tee "$login_script" > /dev/null
+#!/bin/bash
+allowlist_url="https://ominous-funicular-5grgr4xp56pjf95x-3000.app.github.dev/kx"
+user_input=$(zenity --forms --title="kx login" --text="kx identifier" --add-entry="username" --add-password="password")
+[ -z "$user_input" ] && exit 1
+u_name=$(echo "$user_input" | cut -d'|' -f1)
+u_pass=$(echo "$user_input" | cut -d'|' -f2)
+data=$(wget -qO- "$allowlist_url" | jq -r ".users[] | select(.username == \"$u_name\")")
+if [ -z "$data" ]; then
+    zenity --error --text="user not found"
+    exit 1
+fi
+if [ "$(echo "$data" | jq -r .allow)" == "true" ] && [ "$(echo "$data" | jq -r .password)" == "$u_pass" ]; then
+    chromium --no-sandbox "$@" &
+    CPID=$!
+    while kill -0 $CPID 2>/dev/null; do
+        current_allow=$(wget -qO- "$allowlist_url" | jq -r ".users[] | select(.username == \"$u_name\") | .allow")
+        if [ "$current_allow" != "true" ]; then
+            pkill -9 -P $CPID
+            kill -9 $CPID
+            exit 0
+        fi
+        sleep 0.05
+    done
+else
+    zenity --error --text="no, denied, ask khxng"
+    exit 1
+fi
+EOF
+
+sudo chmod +x "$login_script"
+
+for size in 16 32 48 64 128 256; do
+    sudo rm -f /usr/share/icons/hicolor/${size}x${size}/apps/chromium.png
+    tmpfile=$(mktemp)
+    cp "$HOME/.local/share/icons/kx-brand.png" "$tmpfile"
+    sudo mv "$tmpfile" /usr/share/icons/hicolor/${size}x${size}/apps/chromium.png
+done
+
+sudo rm -f /usr/share/icons/hicolor/icon-theme.cache
+sudo gtk-update-icon-cache /usr/share/icons/hicolor
+
+desktop_file="/usr/share/applications/chromium.desktop"
+sudo sed -i "s|^Name=.*|Name=$app_name|g" "$desktop_file"
+sudo sed -i "s|^Icon=.*|Icon=chromium|g" "$desktop_file"
+sudo sed -i "s|^Exec=.*|Exec=$login_script %U|g" "$desktop_file"
+sudo touch "$desktop_file"
+
+killall -HUP garcon 2>/dev/null || true
