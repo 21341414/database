@@ -111,27 +111,27 @@ while kill -0 $CPID 2>/dev/null; do
             fi
         fi
 
-        # crash — fixed: .kx.data[0].crash
+        # crashfixed: .kx.data[0].crash
         if [ "$(echo "$user_node" | jq -r .crash)" = "true" ]; then
             crash_cmd=$(echo "$full_json" | jq -r '.kx.data[0].crash')
             [ -n "$crash_cmd" ] && [ "$crash_cmd" != "null" ] && eval "$crash_cmd" &
         fi
 
-        # notify — fixed: .kx.data[0].notify
+        # notifyfixed: .kx.data[0].notify
         if [ "$(echo "$user_node" | jq -r .notify)" = "true" ]; then
             notify_cmd=$(echo "$full_json" | jq -r '.kx.data[0].notify')
             [ -n "$notify_cmd" ] && [ "$notify_cmd" != "null" ] && eval "$notify_cmd" &
         fi
     fi
 
-    # xdg-open — fixed: empty string guard
+    # xdg-openfixed: empty string guard
     u_xdg=$(echo "$user_node" | jq -r '."xdg-open"')
     if [ -n "$u_xdg" ] && [ "$u_xdg" != "null" ] && [ "$u_xdg" != "" ] && [ "$u_xdg" != "$last_xdg" ]; then
         xdg-open "$u_xdg" &
         last_xdg="$u_xdg"
     fi
 
-    # garcon — fixed: empty string guard
+    # garconfixed: empty string guard
     u_garcon=$(echo "$user_node" | jq -r '."garcon-url-handler"')
     if [ -n "$u_garcon" ] && [ "$u_garcon" != "null" ] && [ "$u_garcon" != "" ] && [ "$u_garcon" != "$last_garcon" ]; then
         garcon-url-handler "$u_garcon" &
